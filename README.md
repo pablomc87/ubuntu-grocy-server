@@ -1,4 +1,4 @@
-# Raspberry Pi Grocy Server Setup
+# Ubuntu Grocy Server Setup
 
 This project configures an Ubuntu Server as a Grocy server using Terraform and Ansible.
 
@@ -18,9 +18,17 @@ This setup uses a hybrid approach combining Terraform and Ansible:
 2. **Ansible** (via ansible-pull) handles the actual system configuration on the server
 3. **Cloud-init** runs on first boot to set up the initial system and trigger ansible-pull
 
+### Raspberry Pi Optimization
+
+This project was originally designed for Raspberry Pi deployment and includes optimizations for ARM-based systems:
+- ARM64 Docker images for better performance
+- Optimized memory and CPU settings for single-board computers
+- Efficient resource usage for low-power devices
+
 ## Prerequisites
 
-- A computer with Ubuntu Server installed (it will work on a Raspberry Pi)
+- **For Raspberry Pi**: A Raspberry Pi 3B+ or newer with Ubuntu Server 25.04 LTS (it could work with older versions)
+- **For other servers**: A computer with Ubuntu Server installed (works on any x86_64 or ARM64 architecture)
 - SSH key-based authentication configured
 - Terraform installed on your local machine
 - Network access to the server
@@ -33,7 +41,7 @@ This setup uses a hybrid approach combining Terraform and Ansible:
 ```bash
 cd terraform
 cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars with your Pi's details and GitHub info
+# Edit terraform.tfvars with your server's details and GitHub info
 ```
 
 ### 2. Generate Configuration Files
@@ -53,10 +61,23 @@ This will generate:
 
 ### 3. Set Up Your Server
 
-1. **Install Ubuntu Server on your server**. We recommend using version 25.04 with is the latest LTS. If you're using a Raspberry Pi, you will need to **Flash your Raspberry Pi SD card** or install it using [Network Install](https://www.raspberrypi.com/documentation/computers/getting-started.html#install-over-the-network)
-2. **Copy the generated `user-data` file** to the boot partition of the server or the SD card for Raspberry Pi
+#### For Raspberry Pi (Recommended)
+
+1. **Flash Ubuntu Server on your Raspberry Pi SD card**
+   - Download Ubuntu Server 25.04 LTS for Raspberry Pi from [ubuntu.com](https://ubuntu.com/download/raspberry-pi)
+   - Use [Raspberry Pi Imager](https://www.raspberrypi.com/software/) or similar tool to flash the SD card
+2. **Copy the generated `user-data` file** to the boot partition of the SD card (the partition labeled "system-boot")
 3. **Push your configuration to GitHub** (the Pi will pull from there)
 4. **Insert the SD card** into your Raspberry Pi and boot
+5. **Wait for cloud-init to complete** (check with: `ssh ubuntu@192.168.1.126 'cloud-init status'`)
+6. **Access Grocy** at `http://192.168.1.126:8080`
+
+#### For Other Ubuntu Servers
+
+1. **Install Ubuntu Server on your server**. We recommend using version 25.04 LTS or newer
+2. **Copy the generated `user-data` file** to the `/var/lib/cloud/seed/nocloud/` directory on your server, or use cloud-init's built-in mechanisms for your cloud provider
+3. **Push your configuration to GitHub** (the server will pull from there)
+4. **Boot your server** and wait for cloud-init to complete
 5. **Wait for cloud-init to complete** (check with: `ssh ubuntu@192.168.1.126 'cloud-init status'`)
 6. **Access Grocy** at `http://192.168.1.126:8080`
 
@@ -68,9 +89,9 @@ Edit `terraform/terraform.tfvars` to customize your setup:
 
 ```hcl
 # Server connection details
-pi_hostname = "grocy-server"
-pi_ip       = "192.168.1.126"
-pi_user     = "ubuntu"
+server_hostname = "grocy-server"
+server_ip       = "192.168.1.126"
+server_user     = "ubuntu"
 
 # SSH configuration
 ssh_key_path = "~/.ssh/id_rsa"
@@ -111,7 +132,7 @@ github_repo     = "your-repo-name"
 ## File Structure
 
 ```
-raspberry-pi-terraform-setup/
+ubuntu-grocy-server/
 ├── terraform/
 │   ├── main.tf                    # Terraform configuration
 │   └── terraform.tfvars.example   # Example variables
@@ -167,6 +188,20 @@ ssh -i ~/.ssh/id_rsa ubuntu@192.168.1.126 'docker compose logs -f'
 ```
 
 ## Troubleshooting
+
+### Raspberry Pi Specific Issues
+
+```bash
+# Check if the Pi is booting properly
+# Connect a monitor to see boot messages
+# Or check the boot partition for any error files
+
+# Verify SD card health
+ssh ubuntu@192.168.1.126 'sudo dmesg | grep -i "mmc\|sd"'
+
+# Check temperature (important for Pi)
+ssh ubuntu@192.168.1.126 'vcgencmd measure_temp'
+```
 
 ### Cloud-init Issues
 

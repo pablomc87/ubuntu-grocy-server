@@ -10,7 +10,7 @@ apt:
     };
 
 users:
-- name: ${pi_user}
+- name: ${server_user}
   groups: users,adm,netdev,sudo,docker
   shell: /bin/bash
   lock_passwd: true
