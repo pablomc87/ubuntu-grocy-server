@@ -1,0 +1,115 @@
+---
+# Grocy server setup tasks
+
+- name: Install Docker dependencies
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+      - software-properties-common
+    state: present
+    update_cache: yes
+
+- name: Add Docker GPG key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Add Docker repository
+  apt_repository:
+    repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    state: present
+
+- name: Install Docker
+  apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-compose-plugin
+    state: present
+
+- name: Add user to docker group
+  user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: yes
+
+- name: Start and enable Docker service
+  systemd:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Create Grocy data directory
+  file:
+    path: "{{ grocy_data_path }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0755'
+
+- name: Create Docker Compose file for Grocy
+  template:
+    src: docker-compose.yml.j2
+    dest: /home/{{ ansible_user }}/docker-compose.yml
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0644'
+
+- name: Create Grocy systemd service
+  template:
+    src: grocy.service.j2
+    dest: /etc/systemd/system/grocy.service
+    mode: '0644'
+  notify: reload systemd
+
+- name: Start and enable Grocy service
+  systemd:
+    name: grocy
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Configure UFW firewall
+  ufw:
+    rule: allow
+    port: "{{ grocy_port }}"
+    proto: tcp
+
+- name: Create backup script
+  template:
+    src: backup.sh.j2
+    dest: /home/{{ ansible_user }}/backup-grocy.sh
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0755'
+
+- name: Create update script
+  template:
+    src: update.sh.j2
+    dest: /home/{{ ansible_user }}/update-grocy.sh
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0755'
+
+- name: Create health check script
+  template:
+    src: health-check.sh.j2
+    dest: /home/{{ ansible_user }}/health-check.sh
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0755'
+
+- name: Wait for Grocy to be ready
+  uri:
+    url: "http://localhost:{{ grocy_port }}"
+    method: GET
+    status_code: 200
+  retries: 30
+  delay: 10
+  register: grocy_ready
+  until: grocy_ready.status == 200

@@ -1,6 +1,0 @@
----
-
-- hosts: dockerswarm
-  roles:
-    - common
-    - dockerswarm

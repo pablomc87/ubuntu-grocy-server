@@ -1,5 +1,5 @@
 #cloud-config
-hostname: piswarm1
+hostname: ${hostname}
 manage_etc_hosts: true
 packages:
 - avahi-daemon
@@ -10,17 +10,16 @@ apt:
     };
 
 users:
-- name: clays
-  groups: users,adm,dialout,audio,netdev,video,plugdev,cdrom,games,input,gpio,spi,i2c,render,sudo
+- name: ${pi_user}
+  groups: users,adm,netdev,sudo,docker
   shell: /bin/bash
   lock_passwd: true
-  passwd: $5$/1czcKwIws$3UKufATwdEbnGf.TsgPM5CrSNtu7c7w7E2BmL.Hdzz3
+  passwd: $6$rounds=4096$salt$hash
   ssh_authorized_keys:
-    - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIsfV1C2TAYqBZBuntJIZjuC+vLwZqTVrXGxal/iCY/k
+    - ${ssh_key}
   sudo: ALL=(ALL) NOPASSWD:ALL
 
-
-timezone: America/New_York
+timezone: UTC
 runcmd:
 - localectl set-x11-keymap "us" pc105
 - setupcon -k --force || true
@@ -29,6 +28,7 @@ ansible:
   package_name: ansible-core
   install_method: distro
   pull:
-    url: "https://github.com/clayshek/raspi-ubuntu-ansible.git"
+    url: "${repo_url}"
     playbook_name: main.yml
     inventory: inventory.yml
+    directory: /opt/ansible-pull

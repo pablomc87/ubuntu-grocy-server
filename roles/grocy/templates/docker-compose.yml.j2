@@ -1,0 +1,24 @@
+services:
+  grocy:
+    image: lscr.io/linuxserver/grocy:latest
+    container_name: grocy
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+      - GROCY_APP_URL=http://{{ ansible_default_ipv4.address }}:{{ grocy_port }}
+    volumes:
+      - {{ grocy_data_path }}:/config
+    ports:
+      - "{{ grocy_port }}:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  default:
+    name: grocy-network

@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# Grocy Health Check Script
+# This script checks the health of the Grocy server
+
+echo "=== Grocy Server Health Check ==="
+echo "Date: $(date)"
+echo "Hostname: $(hostname)"
+echo "Uptime: $(uptime)"
+echo
+
+echo "=== System Resources ==="
+echo "Disk Usage:"
+df -h
+echo
+
+echo "Memory Usage:"
+free -h
+echo
+
+echo "=== Docker Status ==="
+docker ps
+echo
+
+echo "=== Grocy Container Status ==="
+if docker ps | grep -q grocy; then
+    echo "✓ Grocy container is running"
+    echo "Container logs (last 10 lines):"
+    docker logs grocy --tail=10
+else
+    echo "✗ Grocy container is not running"
+fi
+echo
+
+echo "=== Network Connectivity ==="
+if curl -s -f "http://localhost:{{ grocy_port }}" > /dev/null; then
+    echo "✓ Grocy web interface is accessible"
+else
+    echo "✗ Grocy web interface is not accessible"
+fi
+echo
+
+echo "=== Service Status ==="
+systemctl status grocy --no-pager -l
+echo
+
+echo "Health check completed at $(date)"

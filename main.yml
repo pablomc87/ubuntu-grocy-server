@@ -1,5 +1,9 @@
 ---
+# Main playbook for Grocy server setup
 
-#- import_playbook: pidevbox.yml
-#- import_playbook: pinas.yml
-- import_playbook: pidockerswarm.yml
+- hosts: grocy
+  become: yes
+  become_method: sudo
+  roles:
+    - common
+    - grocy

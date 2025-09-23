@@ -1,11 +1,7 @@
 ---
 
-nas:
+grocy:
   hosts:
-    pinas:
-devbox:
-  hosts:
-    pidevbox:
-dockerswarm:
-  hosts:
-    piswarm[1:4]:
+    ${hostname}:
+      ansible_host: ${pi_ip}
+      ansible_user: ${pi_user}

@@ -1,0 +1,21 @@
+# Copy this file to terraform.tfvars and customize the values
+
+# Raspberry Pi connection details
+pi_hostname = "grocy-server"
+pi_ip       = "192.168.1.126"
+pi_user     = "ubuntu"
+
+# SSH configuration
+ssh_key_path = "~/.ssh/id_rsa"
+
+# Network configuration
+gateway      = "192.168.1.1"
+dns_servers  = ["192.168.1.1", "8.8.8.8"]
+
+# Grocy configuration
+grocy_port     = 8080
+grocy_data_path = "/opt/grocy/data"
+
+# GitHub repository (where you'll push this configuration)
+github_username = "your-github-username"
+github_repo     = "raspberry-pi-terraform-setup"

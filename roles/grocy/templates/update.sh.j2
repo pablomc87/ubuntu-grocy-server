@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# Grocy Update Script
+# This script updates Grocy to the latest version
+
+set -e
+
+echo "Updating Grocy to the latest version..."
+
+# Pull latest images
+echo "Pulling latest Docker images..."
+docker compose pull
+
+# Stop current containers
+echo "Stopping current containers..."
+docker compose down
+
+# Start with new images
+echo "Starting containers with updated images..."
+docker compose up -d
+
+# Clean up old images
+echo "Cleaning up old Docker images..."
+docker image prune -f
+
+echo "Grocy update completed successfully!"
+echo "You can check the status with: docker compose ps"
+echo "View logs with: docker compose logs -f"

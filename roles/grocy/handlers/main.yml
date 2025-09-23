@@ -1,0 +1,11 @@
+---
+# Handlers for Grocy role
+
+- name: reload systemd
+  systemd:
+    daemon_reload: yes
+
+- name: restart grocy
+  systemd:
+    name: grocy
+    state: restarted
