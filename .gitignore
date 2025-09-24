@@ -10,8 +10,6 @@ crash.*.log
 
 # Generated files
 user-data-generated
-inventory-generated.yml
-main-generated.yml
 host_vars/*-generated.yml
 
 # SSH keys

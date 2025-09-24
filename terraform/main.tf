@@ -1,3 +1,4 @@
+# Terraform Configuration
 terraform {
   required_version = ">= 1.0"
   required_providers {
@@ -12,64 +13,13 @@ terraform {
   }
 }
 
-# Variables
-variable "server_hostname" {
-  description = "Hostname for the Ubuntu server"
-  type        = string
-  default     = "grocy-server"
-}
-
-variable "server_ip" {
-  description = "IP address of the Ubuntu server"
-  type        = string
-  default     = "192.168.1.126"
-}
-
-variable "server_user" {
-  description = "SSH user for the Ubuntu server"
-  type        = string
-  default     = "ubuntu"
-}
-
-variable "ssh_key_path" {
-  description = "Path to SSH private key for connecting to the server"
-  type        = string
-  default     = "~/.ssh/id_rsa"
-}
-
-variable "gateway" {
-  description = "Default gateway IP"
-  type        = string
-  default     = "192.168.1.1"
-}
-
-variable "dns_servers" {
-  description = "DNS servers"
-  type        = list(string)
-  default     = ["192.168.1.1", "8.8.8.8"]
-}
-
-variable "grocy_port" {
-  description = "Port for Grocy web interface"
-  type        = number
-  default     = 8080
-}
-
-variable "grocy_data_path" {
-  description = "Path to store Grocy data on the server"
-  type        = string
-  default     = "/opt/grocy/data"
-}
-
-variable "github_username" {
-  description = "GitHub username for the repository"
-  type        = string
-}
-
-variable "github_repo" {
-  description = "GitHub repository name"
-  type        = string
-  default     = "ubuntu-grocy-server"
+# Generate SHA-256 password hash using openssl (format: $5$...)
+data "external" "password_hash" {
+  program = ["sh", "-c", <<-EOT
+    HASH=$(openssl passwd -5 '${var.user_password}')
+    echo "{\"hash\": \"$HASH\"}"
+  EOT
+  ]
 }
 
 # Create user-data file for cloud-init
@@ -77,8 +27,9 @@ resource "local_file" "user_data" {
   content = templatefile("${path.module}/../user-data", {
     hostname     = var.server_hostname
     server_user  = var.server_user
-    ssh_key      = file(pathexpand(var.ssh_key_path))
+    ssh_key      = file("${pathexpand(var.ssh_key_path)}.pub")
     repo_url     = "https://github.com/${var.github_username}/${var.github_repo}.git"
+    password_hash = data.external.password_hash.result.hash
   })
   filename = "${path.module}/../user-data-generated"
 }
@@ -109,13 +60,31 @@ resource "local_file" "host_vars" {
 # Create main playbook
 resource "local_file" "main_playbook" {
   content = file("${path.module}/../main.yml")
-  filename = "${path.module}/../main-generated.yml"
+  filename = "${path.module}/../main.yml"
+}
+# Create a simple wrapper script that sets environment variables and calls the template
+resource "local_file" "deploy_script" {
+  content = <<-EOT
+#!/bin/bash
+# Wrapper script to set environment variables and run deploy-template.sh
+
+export SERVER_IP="${var.server_ip}"
+export SERVER_USER="${var.server_user}"
+export SSH_KEY="${var.ssh_key_path}"
+export CLOUD_INIT_DIR="${var.cloud_init_directory}"
+export USER_DATA_FILE="${path.module}/../user-data-generated"
+export USER_PASSWORD="${var.user_password}"
+
+exec "${path.module}/deploy-template.sh"
+EOT
+  filename = "${path.module}/deploy.sh"
+  file_permission = "0755"
 }
 
 # Ansible provisioner to run the playbook
 resource "ansible_host" "grocy_server" {
-  inventory_hostname = var.server_hostname
-  groups             = ["grocy"]
+  name   = var.server_hostname
+  groups = ["grocy"]
   variables = {
     ansible_host = var.server_ip
     ansible_user = var.server_user
@@ -125,9 +94,8 @@ resource "ansible_host" "grocy_server" {
 }
 
 resource "ansible_playbook" "grocy_setup" {
-  playbook = "${path.module}/../main-generated.yml"
+  playbook = "${path.module}/../main.yml"
   name     = var.server_hostname
-  replayable = true
   
   extra_vars = {
     hostname = var.server_hostname
@@ -142,41 +110,4 @@ resource "ansible_playbook" "grocy_setup" {
     local_file.host_vars,
     local_file.main_playbook
   ]
-}
-
-# Output information
-output "grocy_url" {
-  description = "URL to access Grocy web interface"
-  value       = "http://${var.server_ip}:${var.grocy_port}"
-}
-
-output "ssh_connection" {
-  description = "SSH connection details"
-  value       = "ssh -i ${pathexpand(var.ssh_key_path)} ${var.server_user}@${var.server_ip}"
-}
-
-output "user_data_file" {
-  description = "Path to the generated user-data file"
-  value       = local_file.user_data.filename
-}
-
-output "setup_instructions" {
-  description = "Instructions for setting up the Ubuntu server"
-  value = <<-EOT
-    For Raspberry Pi:
-    1. Flash Ubuntu Server 24.04 LTS on your Raspberry Pi SD card
-    2. Copy the user-data file to the boot partition of the SD card
-    3. Insert the SD card into your Raspberry Pi and boot
-    4. Wait for cloud-init to complete (check with: ssh ${var.server_user}@${var.server_ip} 'cloud-init status')
-    5. Run: terraform apply to configure the system
-    6. Access Grocy at: http://${var.server_ip}:${var.grocy_port}
-    
-    For other Ubuntu servers:
-    1. Install Ubuntu Server on your server
-    2. Copy the user-data file to /var/lib/cloud/seed/nocloud/ or use cloud-init mechanisms
-    3. Boot your server and wait for cloud-init to complete
-    4. Wait for cloud-init to complete (check with: ssh ${var.server_user}@${var.server_ip} 'cloud-init status')
-    5. Run: terraform apply to configure the system
-    6. Access Grocy at: http://${var.server_ip}:${var.grocy_port}
-  EOT
 }

@@ -238,6 +238,16 @@ ssh ubuntu@192.168.1.126 'docker compose logs grocy'
 - SSH key-based authentication
 - UFW firewall configuration
 - Non-root user execution
+
+### SSH Key Management
+
+The deployment script supports both SSH key and password authentication:
+
+**Set up SSH key authentication (recommended):**
+```bash
+ssh-copy-id -i ~/.ssh/id_rsa.pub pablomartincalvo@192.168.1.126
+```
+
 - Docker container isolation
 - Regular system updates
 

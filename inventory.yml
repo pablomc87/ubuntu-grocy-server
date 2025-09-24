@@ -2,6 +2,6 @@
 
 grocy:
   hosts:
-    ${hostname}:
-      ansible_host: ${server_ip}
-      ansible_user: ${server_user}
+    "${hostname}":
+      ansible_host: "${server_ip}"
+      ansible_user: "${server_user}"

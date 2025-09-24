@@ -5,5 +5,4 @@
   become: yes
   become_method: sudo
   roles:
-    - common
     - grocy

@@ -19,3 +19,11 @@ grocy_data_path = "/opt/grocy/data"
 # GitHub repository (where you'll push this configuration)
 github_username = "your-github-username"
 github_repo     = "ubuntu-grocy-server"
+
+# User password (REQUIRED - must be at least 8 characters with uppercase, lowercase, number, and special character)
+user_password = "YourSecurePassword123!"
+
+# Cloud-init configuration
+cloud_init_directory = "/var/lib/cloud/seed/nocloud"
+
+# Note: Run the deployment script manually with: ./deploy.sh

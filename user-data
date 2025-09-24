@@ -13,13 +13,16 @@ users:
 - name: ${server_user}
   groups: users,adm,netdev,sudo,docker
   shell: /bin/bash
-  lock_passwd: true
-  passwd: $6$rounds=4096$salt$hash
+  lock_passwd: false
+  passwd: ${password_hash}
   ssh_authorized_keys:
     - ${ssh_key}
   sudo: ALL=(ALL) NOPASSWD:ALL
 
-timezone: UTC
+timezone: Europe/Paris
+keyboard:
+  model: pc105
+  layout: es
 runcmd:
 - localectl set-x11-keymap "us" pc105
 - setupcon -k --force || true
@@ -30,5 +33,5 @@ ansible:
   pull:
     url: "${repo_url}"
     playbook_name: main.yml
-    inventory: inventory.yml
+    inventory: inventory-generated.yml
     directory: /opt/ansible-pull
