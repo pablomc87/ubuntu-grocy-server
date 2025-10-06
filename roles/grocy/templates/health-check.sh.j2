@@ -33,7 +33,7 @@ fi
 echo
 
 echo "=== Network Connectivity ==="
-if curl -s -f "http://localhost:{{ grocy_port }}" > /dev/null; then
+if curl -s -f "http://localhost:9283" > /dev/null; then
     echo "✓ Grocy web interface is accessible"
 else
     echo "✗ Grocy web interface is not accessible"

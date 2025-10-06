@@ -6,11 +6,11 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=UTC
-      - GROCY_APP_URL=http://{{ ansible_default_ipv4.address }}:{{ grocy_port }}
+      - GROCY_APP_URL=http://{{ ansible_default_ipv4.address }}:9283
     volumes:
-      - {{ grocy_data_path }}:/config
+      - /home/pablomartincalvo/grocy-data:/config
     ports:
-      - "{{ grocy_port }}:80"
+      - "9283:80"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80"]
