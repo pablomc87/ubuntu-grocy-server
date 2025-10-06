@@ -141,3 +141,11 @@
   delay: 10
   register: grocy_ready
   until: grocy_ready.status == 200
+
+- name: Configure Grocy currency to EUR
+  lineinfile:
+    path: "/home/pablomartincalvo/grocy-data/data/config.php"
+    regexp: "CURRENCY.*USD"
+    line: "Setting('CURRENCY', 'EUR');"
+    backup: true
+  become: true
