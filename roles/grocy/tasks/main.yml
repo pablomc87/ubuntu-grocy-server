@@ -29,6 +29,18 @@
     owner: root
     group: root
 
+- name: Remove old Docker repositories
+  apt_repository:
+    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ 'noble' if ansible_distribution_release == 'plucky' else ansible_distribution_release }} stable"
+    state: absent
+  ignore_errors: true
+
+- name: Remove old Docker repositories (plucky)
+  apt_repository:
+    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu plucky stable"
+    state: absent
+  ignore_errors: true
+
 - name: Add Docker repository
   apt_repository:
     repo: "deb [arch={{ ansible_architecture }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ 'noble' if ansible_distribution_release == 'plucky' else ansible_distribution_release }} stable"
