@@ -144,9 +144,9 @@ ssh_sudo_cmd "systemctl stop grocy || true"
 # Only try Docker commands if Docker is installed and running
 if ssh_sudo_cmd "which docker >/dev/null 2>&1 && systemctl is-active docker >/dev/null 2>&1" >/dev/null 2>&1; then
     log_info "Docker is installed and running, cleaning up containers..."
-    ssh_sudo_cmd "docker stop \$(docker ps -aq) 2>/dev/null || true"
-    ssh_sudo_cmd "docker rm \$(docker ps -aq) 2>/dev/null || true"
-    ssh_sudo_cmd "docker system prune -f 2>/dev/null || true"
+    ssh_sudo_cmd "sudo docker stop \$(sudo docker ps -aq) 2>/dev/null || true"
+    ssh_sudo_cmd "sudo docker rm \$(sudo docker ps -aq) 2>/dev/null || true"
+    ssh_sudo_cmd "sudo docker system prune -f 2>/dev/null || true"
     log_success "Docker services and containers stopped"
 else
     log_info "Docker not installed or not running, skipping Docker cleanup"
