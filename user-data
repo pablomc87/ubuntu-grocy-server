@@ -23,15 +23,19 @@ timezone: Europe/Paris
 keyboard:
   model: pc105
   layout: es
-runcmd:
-- localectl set-x11-keymap "us" pc105
-- setupcon -k --force || true
-
 ansible:
   package_name: ansible-core
   install_method: distro
   pull:
     url: "${repo_url}"
     playbook_name: main.yml
-    inventory: inventory-generated.yml
+    inventory: inventory.yml
     directory: /opt/ansible-pull
+    clean: true
+
+runcmd:
+- localectl set-x11-keymap "us" pc105
+- setupcon -k --force || true
+- mkdir -p /opt/ansible-pull
+- cp /tmp/inventory.yml /opt/ansible-pull/inventory.yml
+- cp /tmp/inventory-generated.yml /opt/ansible-pull/inventory-generated.yml

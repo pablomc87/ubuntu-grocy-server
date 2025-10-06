@@ -132,6 +132,17 @@ log_info "Cleaning cloud-init state..."
 ssh_sudo_cmd "cloud-init clean"
 log_success "Cloud-init state cleaned"
 
+# Clean ansible-pull directory to ensure fresh deployment
+log_info "Cleaning ansible-pull directory..."
+ssh_sudo_cmd "rm -rf /opt/ansible-pull"
+log_success "Ansible-pull directory cleaned"
+
+# Copy updated inventory files to server
+log_info "Copying updated inventory files to server..."
+scp_cmd "${path.module}/../inventory.yml" "$SERVER_USER@$SERVER_IP:/tmp/inventory.yml"
+scp_cmd "${path.module}/../inventory-generated.yml" "$SERVER_USER@$SERVER_IP:/tmp/inventory-generated.yml"
+log_success "Inventory files copied to server"
+
 # Ask for confirmation before reboot
 echo
 log_warning "The server will now reboot to apply the new configuration."
@@ -172,7 +183,19 @@ log_info "Checking cloud-init status..."
 cloud_init_status=$(ssh_cmd "cloud-init status" 2>/dev/null || echo "status: error")
 log_info "Cloud-init status: $cloud_init_status"
 
-if [[ "$cloud_init_status" == *"running"* ]]; then
+if [[ "$cloud_init_status" == *"error"* ]]; then
+    log_error "Cloud-init encountered an error!"
+    log_info "Check the cloud-init logs with:"
+    if [ "$USE_PASSWORD_AUTH" = true ]; then
+        log_info "  ssh $SERVER_USER@$SERVER_IP 'echo \"$USER_PASSWORD\" | sudo -S cloud-init status --long'"
+        log_info "  ssh $SERVER_USER@$SERVER_IP 'echo \"$USER_PASSWORD\" | sudo -S journalctl -u cloud-init -n 50'"
+    else
+        log_info "  ssh -i $SSH_KEY $SERVER_USER@$SERVER_IP 'sudo cloud-init status --long'"
+        log_info "  ssh -i $SSH_KEY $SERVER_USER@$SERVER_IP 'sudo journalctl -u cloud-init -n 50'"
+    fi
+    log_error "Deployment failed due to cloud-init error. Please check the logs above and fix the issues before retrying."
+    exit 1
+elif [[ "$cloud_init_status" == *"running"* ]]; then
     log_info "Cloud-init is still running. Waiting for completion..."
     log_info "This may take several minutes as it installs ansible, runs the playbook, and sets up Docker..."
     
@@ -186,10 +209,13 @@ if [[ "$cloud_init_status" == *"running"* ]]; then
             log_error "Cloud-init encountered an error!"
             log_info "Check the cloud-init logs with:"
             if [ "$USE_PASSWORD_AUTH" = true ]; then
+                log_info "  ssh $SERVER_USER@$SERVER_IP 'echo \"$USER_PASSWORD\" | sudo -S cloud-init status --long'"
                 log_info "  ssh $SERVER_USER@$SERVER_IP 'echo \"$USER_PASSWORD\" | sudo -S journalctl -u cloud-init -n 50'"
             else
+                log_info "  ssh -i $SSH_KEY $SERVER_USER@$SERVER_IP 'sudo cloud-init status --long'"
                 log_info "  ssh -i $SSH_KEY $SERVER_USER@$SERVER_IP 'sudo journalctl -u cloud-init -n 50'"
             fi
+            log_error "Deployment failed due to cloud-init error. Please check the logs above and fix the issues before retrying."
             exit 1
         else
             log_info "Cloud-init still running... (attempt $i/120) - $cloud_init_status"
@@ -200,7 +226,7 @@ if [[ "$cloud_init_status" == *"running"* ]]; then
     # Final check
     cloud_init_status=$(ssh_cmd "cloud-init status" 2>/dev/null || echo "status: error")
     if [[ "$cloud_init_status" != *"done"* ]]; then
-        log_warning "Cloud-init did not complete within the timeout period."
+        log_error "Cloud-init did not complete within the timeout period."
         log_info "Current status: $cloud_init_status"
         log_info "You can continue monitoring manually with:"
         if [ "$USE_PASSWORD_AUTH" = true ]; then
@@ -208,9 +234,14 @@ if [[ "$cloud_init_status" == *"running"* ]]; then
         else
             log_info "  ssh -i $SSH_KEY $SERVER_USER@$SERVER_IP 'cloud-init status'"
         fi
+        log_error "Deployment failed due to cloud-init timeout. Please check the logs and retry."
+        exit 1
     fi
+elif [[ "$cloud_init_status" == *"done"* ]]; then
+    log_success "Cloud-init completed successfully!"
 else
-    log_info "Cloud-init status: $cloud_init_status"
+    log_warning "Cloud-init status: $cloud_init_status"
+    log_info "This is an unexpected status. Proceeding with caution..."
 fi
 
 # Check if ansible was installed

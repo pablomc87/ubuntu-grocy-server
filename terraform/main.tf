@@ -27,6 +27,7 @@ resource "local_file" "user_data" {
   content = templatefile("${path.module}/../user-data", {
     hostname     = var.server_hostname
     server_user  = var.server_user
+    server_ip    = var.server_ip
     ssh_key      = file("${pathexpand(var.ssh_key_path)}.pub")
     repo_url     = "https://github.com/${var.github_username}/${var.github_repo}.git"
     password_hash = data.external.password_hash.result.hash

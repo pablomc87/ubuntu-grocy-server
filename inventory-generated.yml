@@ -2,6 +2,5 @@
 
 grocy:
   hosts:
-    "raspberrypi":
-      ansible_host: "192.168.1.126"
-      ansible_user: "pablomartincalvo"
+    localhost:
+      ansible_connection: local
