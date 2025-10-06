@@ -137,17 +137,20 @@ log_info "Cleaning ansible-pull directory..."
 ssh_sudo_cmd "rm -rf /opt/ansible-pull"
 log_success "Ansible-pull directory cleaned"
 
-# Stop and remove any existing Docker containers and services
+# Stop and remove any existing Docker containers and services (only if Docker is installed)
 log_info "Stopping existing Docker services and containers..."
 ssh_sudo_cmd "systemctl stop grocy || true"
-ssh_sudo_cmd "docker stop \$(docker ps -aq) || true"
-ssh_sudo_cmd "docker rm \$(docker ps -aq) || true"
-log_success "Docker services and containers stopped"
 
-# Clean Docker system (but preserve volumes)
-log_info "Cleaning Docker system..."
-ssh_sudo_cmd "docker system prune -f || true"
-log_success "Docker system cleaned"
+# Only try Docker commands if Docker is installed and running
+if ssh_sudo_cmd "which docker >/dev/null 2>&1 && systemctl is-active docker >/dev/null 2>&1"; then
+    log_info "Docker is installed and running, cleaning up containers..."
+    ssh_sudo_cmd "docker stop \$(docker ps -aq) 2>/dev/null || true"
+    ssh_sudo_cmd "docker rm \$(docker ps -aq) 2>/dev/null || true"
+    ssh_sudo_cmd "docker system prune -f 2>/dev/null || true"
+    log_success "Docker services and containers stopped"
+else
+    log_info "Docker not installed or not running, skipping Docker cleanup"
+fi
 
 # Clean any existing ansible configurations
 log_info "Cleaning existing ansible configurations..."
