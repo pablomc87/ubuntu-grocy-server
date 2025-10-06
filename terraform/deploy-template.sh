@@ -137,6 +137,24 @@ log_info "Cleaning ansible-pull directory..."
 ssh_sudo_cmd "rm -rf /opt/ansible-pull"
 log_success "Ansible-pull directory cleaned"
 
+# Stop and remove any existing Docker containers and services
+log_info "Stopping existing Docker services and containers..."
+ssh_sudo_cmd "systemctl stop grocy || true"
+ssh_sudo_cmd "docker stop \$(docker ps -aq) || true"
+ssh_sudo_cmd "docker rm \$(docker ps -aq) || true"
+log_success "Docker services and containers stopped"
+
+# Clean Docker system (but preserve volumes)
+log_info "Cleaning Docker system..."
+ssh_sudo_cmd "docker system prune -f || true"
+log_success "Docker system cleaned"
+
+# Clean any existing ansible configurations
+log_info "Cleaning existing ansible configurations..."
+ssh_sudo_cmd "rm -rf /home/$SERVER_USER/.ansible || true"
+ssh_sudo_cmd "rm -rf /root/.ansible || true"
+log_success "Ansible configurations cleaned"
+
 # Copy updated inventory files to server
 log_info "Copying updated inventory files to server..."
 scp_cmd "../inventory.yml" "$SERVER_USER@$SERVER_IP:/tmp/inventory.yml"
@@ -183,23 +201,11 @@ log_info "Checking cloud-init status..."
 cloud_init_status=$(ssh_cmd "cloud-init status" 2>/dev/null || echo "status: error")
 log_info "Cloud-init status: $cloud_init_status"
 
-if [[ "$cloud_init_status" == *"error"* ]]; then
-    log_error "Cloud-init encountered an error!"
-    log_info "Check the cloud-init logs with:"
-    if [ "$USE_PASSWORD_AUTH" = true ]; then
-        log_info "  ssh $SERVER_USER@$SERVER_IP 'echo \"$USER_PASSWORD\" | sudo -S cloud-init status --long'"
-        log_info "  ssh $SERVER_USER@$SERVER_IP 'echo \"$USER_PASSWORD\" | sudo -S journalctl -u cloud-init -n 50'"
-    else
-        log_info "  ssh -i $SSH_KEY $SERVER_USER@$SERVER_IP 'sudo cloud-init status --long'"
-        log_info "  ssh -i $SSH_KEY $SERVER_USER@$SERVER_IP 'sudo journalctl -u cloud-init -n 50'"
-    fi
-    log_error "Deployment failed due to cloud-init error. Please check the logs above and fix the issues before retrying."
-    exit 1
-elif [[ "$cloud_init_status" == *"running"* ]]; then
+# Wait for cloud-init to complete (up to 20 minutes)
+if [[ "$cloud_init_status" == *"running"* ]]; then
     log_info "Cloud-init is still running. Waiting for completion..."
     log_info "This may take several minutes as it installs ansible, runs the playbook, and sets up Docker..."
     
-    # Wait for cloud-init to complete (up to 20 minutes)
     for i in {1..120}; do
         cloud_init_status=$(ssh_cmd "cloud-init status" 2>/dev/null || echo "status: error")
         if [[ "$cloud_init_status" == *"done"* ]]; then
@@ -237,6 +243,18 @@ elif [[ "$cloud_init_status" == *"running"* ]]; then
         log_error "Deployment failed due to cloud-init timeout. Please check the logs and retry."
         exit 1
     fi
+elif [[ "$cloud_init_status" == *"error"* ]]; then
+    log_error "Cloud-init encountered an error!"
+    log_info "Check the cloud-init logs with:"
+    if [ "$USE_PASSWORD_AUTH" = true ]; then
+        log_info "  ssh $SERVER_USER@$SERVER_IP 'echo \"$USER_PASSWORD\" | sudo -S cloud-init status --long'"
+        log_info "  ssh $SERVER_USER@$SERVER_IP 'echo \"$USER_PASSWORD\" | sudo -S journalctl -u cloud-init -n 50'"
+    else
+        log_info "  ssh -i $SSH_KEY $SERVER_USER@$SERVER_IP 'sudo cloud-init status --long'"
+        log_info "  ssh -i $SSH_KEY $SERVER_USER@$SERVER_IP 'sudo journalctl -u cloud-init -n 50'"
+    fi
+    log_error "Deployment failed due to cloud-init error. Please check the logs above and fix the issues before retrying."
+    exit 1
 elif [[ "$cloud_init_status" == *"done"* ]]; then
     log_success "Cloud-init completed successfully!"
 else
