@@ -139,8 +139,8 @@ log_success "Ansible-pull directory cleaned"
 
 # Copy updated inventory files to server
 log_info "Copying updated inventory files to server..."
-scp_cmd "${path.module}/../inventory.yml" "$SERVER_USER@$SERVER_IP:/tmp/inventory.yml"
-scp_cmd "${path.module}/../inventory-generated.yml" "$SERVER_USER@$SERVER_IP:/tmp/inventory-generated.yml"
+scp_cmd "../inventory.yml" "$SERVER_USER@$SERVER_IP:/tmp/inventory.yml"
+scp_cmd "../inventory-generated.yml" "$SERVER_USER@$SERVER_IP:/tmp/inventory-generated.yml"
 log_success "Inventory files copied to server"
 
 # Ask for confirmation before reboot
