@@ -205,36 +205,25 @@ cloud_init_status=$(ssh_sudo_cmd "cloud-init status" 2>/dev/null || echo "status
 log_info "Cloud-init status: $cloud_init_status"
 
 # Wait for cloud-init to complete (up to 20 minutes)
-if [[ "$cloud_init_status" == *"running"* ]]; then
+# Keep waiting until cloud-init is NOT running (i.e., it's either "done" or "error")
+while [[ "$cloud_init_status" == *"running"* ]]; do
     log_info "Cloud-init is still running. Waiting for completion..."
     log_info "This may take several minutes as it installs ansible, runs the playbook, and sets up Docker..."
     
     for i in {1..120}; do
         cloud_init_status=$(ssh_sudo_cmd "cloud-init status" 2>/dev/null || echo "status: error")
-        if [[ "$cloud_init_status" == *"done"* ]]; then
-            log_success "Cloud-init completed successfully!"
+        log_info "Cloud-init status check $i/120: $cloud_init_status"
+        
+        # If it's no longer running, break out of the loop
+        if [[ "$cloud_init_status" != *"running"* ]]; then
             break
-        elif [[ "$cloud_init_status" == *"error"* ]]; then
-            log_error "Cloud-init encountered an error!"
-            log_info "Check the cloud-init logs with:"
-            if [ "$USE_PASSWORD_AUTH" = true ]; then
-                log_info "  ssh $SERVER_USER@$SERVER_IP 'echo \"$USER_PASSWORD\" | sudo -S cloud-init status --long'"
-                log_info "  ssh $SERVER_USER@$SERVER_IP 'echo \"$USER_PASSWORD\" | sudo -S journalctl -u cloud-init -n 50'"
-            else
-                log_info "  ssh -i $SSH_KEY $SERVER_USER@$SERVER_IP 'sudo cloud-init status --long'"
-                log_info "  ssh -i $SSH_KEY $SERVER_USER@$SERVER_IP 'sudo journalctl -u cloud-init -n 50'"
-            fi
-            log_error "Deployment failed due to cloud-init error. Please check the logs above and fix the issues before retrying."
-            exit 1
-        else
-            log_info "Cloud-init still running... (attempt $i/120) - $cloud_init_status"
-            sleep 10
         fi
+        
+        sleep 10
     done
     
-    # Final check
-    cloud_init_status=$(ssh_sudo_cmd "cloud-init status" 2>/dev/null || echo "status: error")
-    if [[ "$cloud_init_status" != *"done"* ]]; then
+    # If we've exhausted the retries and it's still running, exit with error
+    if [[ "$cloud_init_status" == *"running"* ]]; then
         log_error "Cloud-init did not complete within the timeout period."
         log_info "Current status: $cloud_init_status"
         log_info "You can continue monitoring manually with:"
@@ -246,6 +235,11 @@ if [[ "$cloud_init_status" == *"running"* ]]; then
         log_error "Deployment failed due to cloud-init timeout. Please check the logs and retry."
         exit 1
     fi
+done
+
+# Now check the final status
+if [[ "$cloud_init_status" == *"done"* ]]; then
+    log_success "Cloud-init completed successfully!"
 elif [[ "$cloud_init_status" == *"error"* ]]; then
     log_error "Cloud-init encountered an error!"
     log_info "Check the cloud-init logs with:"
@@ -258,8 +252,6 @@ elif [[ "$cloud_init_status" == *"error"* ]]; then
     fi
     log_error "Deployment failed due to cloud-init error. Please check the logs above and fix the issues before retrying."
     exit 1
-elif [[ "$cloud_init_status" == *"done"* ]]; then
-    log_success "Cloud-init completed successfully!"
 else
     log_warning "Cloud-init status: $cloud_init_status"
     log_info "This is an unexpected status. Proceeding with caution..."
