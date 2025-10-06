@@ -53,9 +53,9 @@ ssh_cmd() {
 ssh_sudo_cmd() {
     local cmd="$1"
     if [ "$USE_PASSWORD_AUTH" = true ]; then
-        ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" "echo '$USER_PASSWORD' | sudo -S $cmd"
+        ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" "echo '$USER_PASSWORD' | sudo -S $cmd" 2>/dev/null
     else
-        ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" "echo '$USER_PASSWORD' | sudo -S $cmd"
+        ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" "echo '$USER_PASSWORD' | sudo -S $cmd" 2>/dev/null
     fi
 }
 
