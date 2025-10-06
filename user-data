@@ -36,6 +36,3 @@ ansible:
 runcmd:
 - localectl set-x11-keymap "us" pc105
 - setupcon -k --force || true
-- mkdir -p /opt/ansible-pull
-- cp /tmp/inventory.yml /opt/ansible-pull/inventory.yml
-- cp /tmp/inventory-generated.yml /opt/ansible-pull/inventory-generated.yml
