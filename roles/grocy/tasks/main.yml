@@ -74,18 +74,18 @@
 
 - name: Create Grocy data directory
   file:
-    path: "{{ grocy_data_path }}"
+    path: "/home/pablomartincalvo/grocy-data"
     state: directory
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
+    owner: "pablomartincalvo"
+    group: "pablomartincalvo"
     mode: '0755'
 
 - name: Create Docker Compose file for Grocy
   template:
     src: docker-compose.yml.j2
-    dest: /home/{{ ansible_user }}/docker-compose.yml
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
+    dest: /home/pablomartincalvo/docker-compose.yml
+    owner: "pablomartincalvo"
+    group: "pablomartincalvo"
     mode: '0644'
 
 - name: Create Grocy systemd service
@@ -105,36 +105,36 @@
 - name: Configure UFW firewall
   ufw:
     rule: allow
-    port: "{{ grocy_port }}"
+    port: "9283"
     proto: tcp
 
 - name: Create backup script
   template:
     src: backup.sh.j2
-    dest: /home/{{ ansible_user }}/backup-grocy.sh
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
+    dest: /home/pablomartincalvo/backup-grocy.sh
+    owner: "pablomartincalvo"
+    group: "pablomartincalvo"
     mode: '0755'
 
 - name: Create update script
   template:
     src: update.sh.j2
-    dest: /home/{{ ansible_user }}/update-grocy.sh
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
+    dest: /home/pablomartincalvo/update-grocy.sh
+    owner: "pablomartincalvo"
+    group: "pablomartincalvo"
     mode: '0755'
 
 - name: Create health check script
   template:
     src: health-check.sh.j2
-    dest: /home/{{ ansible_user }}/health-check.sh
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
+    dest: /home/pablomartincalvo/health-check.sh
+    owner: "pablomartincalvo"
+    group: "pablomartincalvo"
     mode: '0755'
 
 - name: Wait for Grocy to be ready
   uri:
-    url: "http://localhost:{{ grocy_port }}"
+    url: "http://localhost:9283"
     method: GET
     status_code: 200
   retries: 30
